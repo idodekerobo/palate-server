@@ -3,41 +3,39 @@ const express = require('express');
 
 // TRANSCRIBER IMPORTS 
 // const textToSpeech = require("@google-cloud/text-to-speech");
-
 // long form audio
 const { TextToSpeechLongAudioSynthesizeClient } = require('@google-cloud/text-to-speech').v1;
 
 const utils = require('../utils')
 
-// Google Cloud functions
-// module.exports.getVoices = async (req, res) => {
-//    const languageCode = 'en';
-//    const googleTextToSpeechClient = new textToSpeech.TextToSpeechClient();
-
-//    try {
-//       const [result] = await googleTextToSpeechClient.listVoices({ languageCode })
-//       const voiceArr = [ ];
-//       // getVoices.forEach(voice => {
-//       //    voiceArr.push(voice.name);
-//       // })
-//       res.send(result);
-//    } catch (e) {
-//       console.log(e);
-//       res.status(400).send(e);
-//    }
-// }
-
 // TRANSCRIBER CONTROLLER
+
+module.exports.getVoices = async (req, res) => {
+   const languageCode = 'en';
+   const textToSpeech = require("@google-cloud/text-to-speech");
+   const googleTextToSpeechClient = new textToSpeech.TextToSpeechClient();
+   try {
+      const [result] = await googleTextToSpeechClient.listVoices({ languageCode })
+      // let voiceArr = [ ];
+      // getVoices.forEach(voice => {
+      //    voiceArr.push(voice.name);
+      // })
+      res.send(result);
+   } catch (e) {
+      console.log(e);
+      res.status(400).send(e);
+   }
+}
+
 /*
 const newPalate = {
-   id: ''
-   author: '',
-   description: palateDescription,
-   text: summarizedText,
-   previewImage: articleArray[0].previewImage,
-   // title: `Palate #${(6).toLocaleString('en-US', {minimumIntegerDigits: 3, useGrouping:false})}`,
-   siteName: articleArray[0].siteName,
-   title: articleArray[0].title
+   id: String,
+   author: String,
+   description: String,
+   text: String,
+   previewImage: String,
+   siteName: String,
+   title: String
 }
 */
 module.exports.transcribeTextFunction = async (palate) => {
@@ -144,9 +142,6 @@ module.exports.transcribeTextEndpoint = async (req, res) => {
       const response = await googleTextToSpeechClient.synthesizeLongAudio(request); // this automatically saves it to cloud bucket
       // const bufferData = response[0].latestResponse.value.data
       // const audioContent = response[0].audioContent
-
-      // // save audio to google cloud bucket
-      // await utils.gCloudStorage.bucket(bucketName).file(fileName).save(audioContent);
       
 
       const palateFirestoreDocRef = utils.firestoreDb.collection(firestoreCollectionName).doc(palateId);
@@ -162,38 +157,3 @@ module.exports.transcribeTextEndpoint = async (req, res) => {
       res.status(400).send(e);
    }
 }
-
-// module.exports.uploadAudioToCloud = async (req, res) => {
-//    try {
-//       const bucketName = "gs://palate-d1218.appspot.com/"
-//       const options = {
-//          destFileName: 'audio001.mp3',
-//          generateMatchPrecondition: 0
-//       }
-//       await utils.gCloudStorage.bucket(bucketName).upload('./palate-output.mp3', options)
-//       res.status(200).send('audio content written to cloud storage');
-//    } catch (e) {
-//       console.log(e);
-//       res.status(400).send(e);
-//    }
-// }
-
-// const updateDbPromise = () => {
-      //    return palateFirestoreDocRef.then(docRef => {
-      //       docRef.update({ gsUtilUri: gsUtilUriPath })
-      //    }).catch(err => {
-      //       console.log(err);
-      //       res.status(400).send(err);
-      //    })
-      // }
-      // const saveToCloudPromise = () => {
-      //    const file = utils.gCloudStorage.bucket(bucketName).file(fileName)
-      //    return file.save(audioContent).then(result => {
-      //       console.log('save successful');
-      //    }).catch(err => {
-      //       console.log(err);
-      //       res.status(400).send(err);
-      //    })
-      // }
-      // const promiseResponse = await Promise.all([ saveToCloudPromise, updateDbPromise ])
-      // res.status(200).send(promiseResponse)

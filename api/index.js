@@ -2,6 +2,7 @@ require('dotenv').config()
 const express = require('express');
 const axios = require("axios")
 const router = express.Router();
+const utils = require('../utils')
 
 const parserCtrl = require('../controllers/parser.controller')
 const summarizerCtrl = require('../controllers/summarizer.controller');
@@ -17,11 +18,24 @@ router.post('/summarize-content', summarizerCtrl.summarizeContentEndpoint);
 // TRANSCRIBER ROUTES
 router.post('/transcribe-text', transcriberCtrl.transcribeTextEndpoint);
 
-const apiUrl = `https://366b-2601-643-8a80-770-30d9-84cd-dff4-70eb.ngrok-free.app`
+const apiUrl = process.env.API_URL
 
 router.get('/', (req, res) => {
    res.send('this is the palate api')
 })
+
+router.get('/palate/:palateId', async (req, res) => {
+   console.log('fetching palate from server')
+   const palateId = req.params.palateId
+   try {
+      const palate = await utils.getFirestoreDocument(palateId, "palates")
+      res.status(200).send(palate)
+   } catch (e) {
+      console.log(`error getting palate ${e}`)
+      res.status(400).send(e)
+   }
+})
+router.get('/get-voices', transcriberCtrl.getVoices)
 
 // TODO: edit this function to also take into account user id so palates are specific to user
 router.post('/createPalate', async (req, res) => {
@@ -43,7 +57,8 @@ router.post('/createPalate', async (req, res) => {
    const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate)
    console.log('transcriber response', transcriberResponse);
    
-   res.status(200).send('palate is finished creating')
+   // res.status(200).send('palate is finished creating')
+   res.status(200).send(transcriberResponse)
 })
 
 module.exports = router;
