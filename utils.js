@@ -1,6 +1,6 @@
 // Firebase
 const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
-const { GoogleAuth } = require('google-auth-library');
+const { GoogleAuth, auth } = require('google-auth-library');
 
 // firebase
 initializeApp({
@@ -25,20 +25,25 @@ const { Storage } = require("@google-cloud/storage");
 
 const firestoreDb = getFirestore();
 
-const credentials = JSON.parse(Buffer.from(process.env.GCLOUD_CREDENTIALS, 'base64').toString('utf-8'));
-const auth = new GoogleAuth({credentials});
+// const credentials = JSON.parse(Buffer.from(process.env.GCLOUD_CREDENTIALS, 'base64').toString('utf-8'));
+// const auth = new GoogleAuth({credentials});
 
-const getGCPCredentials = () => {
-   // for heroku, use environment variables
-   return process.env.GCLOUD_CREDENTIALS
-     ? {
-         credentials: credentials,
-         projectId: process.env.GCP_PROJECT_ID
-       }
-       // for local development, use gcloud CLI
-     : {};
- };
- const gCloudStorage = new Storage(getGCPCredentials());
+// const client = auth.fromJSON(Buffer.from(process.env.GCLOUD_CREDENTIALS, 'base64').toString('utf-8'))
+// const client = auth.fromJSON(process.env.GCLOUD_JSON_CREDENTIALS)
+// console.log(process.env.GCLOUD_JSON_CREDENTIALS)
+// client.scopes = ['https://www.googleapis.com/auth/cloud-platform'];
+
+// const getGCPCredentials = () => {
+//    // for heroku, use environment variables
+//    return process.env.GCLOUD_CREDENTIALS
+//      ? {
+//          credentials: credentials,
+//          projectId: process.env.GCP_PROJECT_ID
+//        }
+//        // for local development, use gcloud CLI
+//      : {};
+//  };
+//  const gCloudStorage = new Storage(getGCPCredentials());
 
 // Firestore Functions
 const addDataToFirestore = async (data, collection) => {
@@ -75,6 +80,6 @@ const getFirestoreDocument = async (documentId, collection) => {
 }
 
 exports.firestoreDb = firestoreDb
-exports.gCloudStorage = gCloudStorage
+// exports.gCloudStorage = gCloudStorage
 exports.addDataToFirestore = addDataToFirestore
 exports.getFirestoreDocument = getFirestoreDocument
