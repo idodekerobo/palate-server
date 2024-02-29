@@ -1,12 +1,12 @@
 // Firebase
 const { initializeApp, applicationDefault, cert } = require('firebase-admin/app');
-const { auth } = require('google-auth-library');
+const { GoogleAuth } = require('google-auth-library');
 
 // firebase
 initializeApp({
   credential: cert({
     type: process.env.FB_CERT_CREDENTIAL_TYPE,
-    project_id: process.env.FB_CERT_PROJECT_ID,
+    project_id: process.env.GCP_PROJECT_ID,
     private_key_id: process.env.FB_CERT_PRIVATE_KEY_ID,
     private_key: process.env.FB_CERT_PRIVATE_KEY.replace(/\\n/g, '\n'),
     client_email: process.env.FB_CERT_CLIENT_EMAIL,
@@ -25,31 +25,20 @@ const { Storage } = require("@google-cloud/storage");
 
 const firestoreDb = getFirestore();
 
+const credentials = JSON.parse(Buffer.from(process.env.GCLOUD_CREDENTIALS, 'base64').toString('utf-8'));
+const auth = new GoogleAuth({credentials});
 
 const getGCPCredentials = () => {
-   // for Vercel, use environment variables
-   return process.env.GOOGLE_PRIVATE_KEY
+   // for heroku, use environment variables
+   return process.env.GCLOUD_CREDENTIALS
      ? {
-         credentials: {
-           client_email: process.env.GCLOUD_SERVICE_ACCOUNT_EMAIL,
-           private_key: process.env.GOOGLE_PRIVATE_KEY,
-         },
-         projectId: process.env.GCP_PROJECT_ID/*.replace(/\\n/g, '\n')*/,
+         credentials: credentials,
+         projectId: process.env.GCP_PROJECT_ID
        }
        // for local development, use gcloud CLI
      : {};
  };
- 
- // example for Google Cloud Storage
  const gCloudStorage = new Storage(getGCPCredentials());
-//  const bucketName = 'my-bucket';
-//  const fileName = 'my-file.json';
-//  const file = gCloudStorage.bucket(bucketName).file(fileName);
-//  await file.save(JSON.stringify({
-//    foo: 'bar',
-//  }), {
-//    contentType: 'application/json',
-//  });
 
 // Firestore Functions
 const addDataToFirestore = async (data, collection) => {
