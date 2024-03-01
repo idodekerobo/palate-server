@@ -58,7 +58,7 @@ router.post('/createPalate', async (req, res) => {
    console.log('transcriber response', transcriberResponse);
    
    // res.status(200).send('palate is finished creating')
-   res.status(200).send(transcriberResponse)
+   res.status(200).send("palate successfully created")
 })
 
 module.exports = router;

@@ -90,7 +90,9 @@ module.exports.summarizeContentFunction = async (articleArray) => {
          text: summarizedText,
          previewImage: articleArray[0].previewImage,
          siteName: articleArray[0].siteName,
-         title: articleArray[0].title
+         title: articleArray[0].title,
+         articleId: articleArray[0].id,
+         originalArticleUrl: articleArray[0].url
       }
       const newPalateDbId = await utils.addDataToFirestore(newPalate, 'palates');
       
