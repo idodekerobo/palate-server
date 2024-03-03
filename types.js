@@ -18,3 +18,10 @@ class Article {
 
    }
 }
+class DBUser {
+   constructor(email, id, palates) {
+      this.id = id
+      this.email = email
+      this.palates = palates // array of strings that are palate id's
+   }
+}

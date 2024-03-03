@@ -39,25 +39,15 @@ router.get('/get-voices', transcriberCtrl.getVoices)
 
 // TODO: edit this function to also take into account user id so palates are specific to user
 router.post('/createPalate', async (req, res) => {
-   
-   // const articleParserResponse = await axios.post(`${apiUrl}/parse-article`, {urls: req.body.urls})
-   // const articleArr = articleParserResponse.data
+
+   // parse article
    const articleArr = await parserCtrl.parseAndSaveArticleFunction(req.body.urls)
-   // console.log('article array from create palate', articleArr)
    
    // summarize
-   // const summarizerResponse = await axios.post(`${apiUrl}/summarize-content`, { articleArray: articleArr })
-   // const { palateId, palateTitle } = summarizerResponse.data
    const palate = await summarizerCtrl.summarizeContentFunction(articleArr)
-   // console.log('from createPalate endpoint: return of summarize content post request: ', palate.id);
 
    // transcribe
-   // const transcriberResponse = await axios.post(`${apiUrl}/transcribe-text`, { palateId: palateId, palateTitle: palateTitle })
-   // const { response: transcriberResult } =  transcriberResponse.data
-   const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate)
-   console.log('transcriber response', transcriberResponse);
-   
-   // res.status(200).send('palate is finished creating')
+   const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate, req.body.userId)
    res.status(200).send("palate successfully created")
 })
 

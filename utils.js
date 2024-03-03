@@ -20,7 +20,7 @@ initializeApp({
   storageBucket: 'palate-d1218.appspot.com'
 });
 
-const { getFirestore, /*Timestamp, FieldValue, Filter */ } = require('firebase-admin/firestore');
+const { getFirestore, FieldValue /*Timestamp, Filter */ } = require('firebase-admin/firestore');
 const { Storage } = require("@google-cloud/storage");
 
 const firestoreDb = getFirestore();
@@ -60,7 +60,6 @@ const addDataToFirestore = async (data, collection) => {
       return e;
    }
 }
-
 const getFirestoreDocument = async (documentId, collection) => {
    try {
       const docRef = firestoreDb.collection(collection).doc(documentId)
@@ -79,7 +78,42 @@ const getFirestoreDocument = async (documentId, collection) => {
    }
 }
 
+/*
+documentId - String of id of Firebase Firestore document to update
+collection - String of collection name in Firebase Firestore
+data - key value pair of name of property to update and value to update it too. i.e., { email: newUserEmail@gmail.com}
+*/
+const updateFirestoreDocument = async (documentId, collection, data) => {
+   try {
+      const docRef = firestoreDb.collection(collection).doc(documentId)
+      const response = await docRef.update(data)
+      return response
+   } catch (e) {
+      console.log("CAUGHT AN ERROR UPDATING FIRESTORE DOCUMENT", e)
+      return e
+   }
+}
+
+// palateId is an array of strings
+const addPalateToFirestoreUser = async (userId, newPalateIdArr) => {
+   try {
+      const docRef = firestoreDb.collection("users").doc(userId)
+      // console.log(docRef);
+      // console.log(userId);
+      // console.log(newPalateIdArr)
+      const response = await docRef.update({
+         palates: FieldValue.arrayUnion(...newPalateIdArr)
+      });
+      return response
+   } catch (e) {
+      console.log("CAUGHT AN ERROR ADDING PALATES TO FIRESTORE USER OBJECT", e)
+      return e
+   }
+}
+
 exports.firestoreDb = firestoreDb
 // exports.gCloudStorage = gCloudStorage
 exports.addDataToFirestore = addDataToFirestore
 exports.getFirestoreDocument = getFirestoreDocument
+exports.updateFirestoreDocument = updateFirestoreDocument
+exports.addPalateToFirestoreUser = addPalateToFirestoreUser

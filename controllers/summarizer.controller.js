@@ -32,24 +32,23 @@ const grabDocumentsFromFirestore = async (documentIdArr) => {
    // console.log('arr length', docReturnArr.length);
    return docReturnArr;
 }
+const generateGptMessages = (contentArr) => {
+   let messageArr = [];
+   contentArr.forEach((contentObj) => {
+      const messageObj = {
+         role: 'user', content: `The text is titled: ${contentObj.title}. Here is the content: ${contentObj.textContent}`,
+      }
+      messageArr.push(messageObj);
+   })
+   return messageArr; 
+}
 
 module.exports.summarizeContentFunction = async (articleArray) => {
    const numWordsForThirtyMinPodcast = [3000, 4500];
    const systemContext = `You are a content engine, named Palate. I'm going to give you some text and I want you to give me a breakdown of the text, in single person narrative format as if you were recording a podcast explaining the text. The output should be around ${numWordsForThirtyMinPodcast[1]} words long describing, in depth, the takeaways, key points, and interesting parts of the text. Start off by saying, "This podcast is brought to you by Palate".`;
-
-   const generateGptMessages = (contentArr) => {
-      let messageArr = [];
-      contentArr.forEach((contentObj, i) => {
-         const messageObj = {
-            role: 'user', content: `The text is titled: ${contentObj.title}. Here is the content: ${contentObj.textContent}`,
-         }
-         messageArr.push(messageObj);
-      })
-
-      return messageArr; 
-   }
    
    if (!openai.apiKey) {
+      console.log('open ai api key not configured correctly')
       res.status(500).json({
          error: {
             message: 'Open AI api key is not configured.'
@@ -61,7 +60,6 @@ module.exports.summarizeContentFunction = async (articleArray) => {
       const gptMessageArr = generateGptMessages(articleArray);
       const messages = [
          { role: 'system', content: systemContext },
-         // { role: 'user', content: "Here's the text!"},
          ...gptMessageArr
       ]
       const gptResponse = await openai.chat.completions.create({
@@ -81,10 +79,7 @@ module.exports.summarizeContentFunction = async (articleArray) => {
          temperature: 0.2 // lower makes output more focused and deterministic. higher makes output more random/creative
       })
       const palateDescription = gptResponseNum2.choices[0].message.content;
-      
-      // TODO: add user parameter here
       const newPalate = {
-         // user: '',
          author: '',
          description: palateDescription,
          text: summarizedText,
@@ -92,7 +87,7 @@ module.exports.summarizeContentFunction = async (articleArray) => {
          siteName: articleArray[0].siteName,
          title: articleArray[0].title,
          articleId: articleArray[0].id,
-         originalArticleUrl: articleArray[0].url
+         originalArticleUrl: articleArray[0].originalArticleUrl
       }
       const newPalateDbId = await utils.addDataToFirestore(newPalate, 'palates');
       
@@ -103,29 +98,18 @@ module.exports.summarizeContentFunction = async (articleArray) => {
       return palateDbObject
 
    } catch (e) {
-      return { }
+      console.log('error summarizing content')
+      console.log(e)
+      return e
    }
 }
 
 module.exports.summarizeContentEndpoint = async (req, res) => {
-   // const contentArr = await grabDocumentsFromFirestore(req.body.articleIds);
    const articleArray = req.body.articleArray
 
    const numWordsForThirtyMinPodcast = [3000, 4500];
    const systemContext = `You are a content engine, named Palate. I'm going to give you some text and I want you to give me a breakdown of the text, in single person narrative format as if you were recording a podcast explaining the text. The output should be around ${numWordsForThirtyMinPodcast[1]} words long describing, in depth, the takeaways, key points, and interesting parts of the text. Start off by saying, "This podcast is brought to you by Palate".`;
 
-   const generateGptMessages = (contentArr) => {
-      let messageArr = [];
-      contentArr.forEach((contentObj, i) => {
-         const messageObj = {
-            role: 'user', content: `The text is titled: ${contentObj.title}. Here is the content: ${contentObj.textContent}`,
-         }
-         messageArr.push(messageObj);
-      })
-
-      return messageArr; 
-   }
-   
    if (!openai.apiKey) {
       res.status(500).json({
          error: {

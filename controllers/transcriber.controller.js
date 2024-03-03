@@ -35,10 +35,12 @@ const newPalate = {
    text: String,
    previewImage: String,
    siteName: String,
-   title: String
+   title: String,
+   articleId: String,
+   originalArticleUrl: String
 }
 */
-module.exports.transcribeTextFunction = async (palate) => {
+module.exports.transcribeTextFunction = async (palate, userId) => {
    const { id, title, text } = palate
    const firestoreCollectionName = "palates"
    const googleTextToSpeechClient = new TextToSpeechLongAudioSynthesizeClient()
@@ -68,6 +70,7 @@ module.exports.transcribeTextFunction = async (palate) => {
       const response = await googleTextToSpeechClient.synthesizeLongAudio(request); // this automatically saves it to cloud bucket
       const palateFirestoreDocRef = utils.firestoreDb.collection(firestoreCollectionName).doc(id);
       await palateFirestoreDocRef.update({ audioUrl: gsUtilUriPath })
+      await utils.addPalateToFirestoreUser(userId, [id])
       console.log('completed transcription of long form audio')
       
       return response
@@ -89,14 +92,10 @@ module.exports.transcribeTextEndpoint = async (req, res) => {
    // TODO - pass in the collections that you want to fetch
    const firestoreCollectionName = "palates"
 
-   // const googleTextToSpeechClient = new textToSpeech.TextToSpeechClient();
-
    // longer audio
    const googleTextToSpeechClient = new TextToSpeechLongAudioSynthesizeClient()
    const bucketName = "gs://palate-d1218.appspot.com/"
     
-   // const date = new Date()
-   // const fileName = `Palate #006, ${date.toLocaleTimeString()}.mp3`
    const fileName = palateTitle
    
    const palateData = await utils.getFirestoreDocument(palateId, firestoreCollectionName)
@@ -112,14 +111,6 @@ module.exports.transcribeTextEndpoint = async (req, res) => {
          input: { 
             text: textToTranscribe
          },
-         // voice: {
-         //    languageCode: 'en-US',
-         //    ssmlGender: 'NEUTRAL',
-         // },
-         // audioConfig: {
-         //    audioEncoding: 'MP3'
-         // },
-         
          // long audio
          audioConfig: {
             audioEncoding: `LINEAR16`
@@ -128,28 +119,20 @@ module.exports.transcribeTextEndpoint = async (req, res) => {
             languageCode: 'en-US',
             // https://cloud.google.com/text-to-speech/docs/voices
             name: 'en-US-Neural2-D',
-            // ssmlGender: 'NEUTRAL',
          }, 
          // parent: "palate-d1218",
          parent: `projects/928931080353/locations/us`,
          outputGcsUri: gsUtilUriPath
       };
-      
-      // create audio from text
-      // const response = await googleTextToSpeechClient.synthesizeSpeech(request);
 
       // create long audio from text
       const response = await googleTextToSpeechClient.synthesizeLongAudio(request); // this automatically saves it to cloud bucket
-      // const bufferData = response[0].latestResponse.value.data
-      // const audioContent = response[0].audioContent
-      
 
       const palateFirestoreDocRef = utils.firestoreDb.collection(firestoreCollectionName).doc(palateId);
       await palateFirestoreDocRef.update({ audioUrl: gsUtilUriPath })
       console.log('completed transcription of long form audio')
 
       res.status(200).send({
-         // response: 'audio content created and uploaded to cloud and cloud uri path stored in database'
          response: response
       });
    } catch (e) {

@@ -71,10 +71,10 @@ module.exports.parseAndSaveArticleFunction = async (urls) => {
             title: article.title,
             previewImage: previewImage.content,
             siteName: article.siteName,
-            textContent: article.textContent
+            textContent: article.textContent,
+            originalArticleUrl: currentUrl
          })
       }
-      // res.send(arrArticleContent);
       return arrArticleContent
    } catch (e) {
       console.log(`error parsing articles ${e}`)
