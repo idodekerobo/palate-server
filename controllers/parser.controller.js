@@ -7,6 +7,7 @@ const readability = require('@mozilla/readability')
 const jsdom = require('jsdom');
 const { JSDOM } = jsdom;
 const axios = require('axios');
+const logger = require('heroku-logger')
 
 const utils = require('../utils')
 

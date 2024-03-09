@@ -1,6 +1,6 @@
 require('dotenv').config()
 const express = require('express');
-
+const logger = require('heroku-logger')
 // TRANSCRIBER IMPORTS 
 // const textToSpeech = require("@google-cloud/text-to-speech");
 // long form audio
