@@ -45,6 +45,7 @@ module.exports.scrapeWithReadability = async (req, res) => {
 // PARSE ARTICLE CONTROLLER
 // TODO: pass in user parameter along with palate url
 module.exports.parseAndSaveArticleFunction = async (urls) => {
+   console.log('running logic on parse and save article function')
    const Readability = readability.Readability;
    
    let arrArticleContent = []

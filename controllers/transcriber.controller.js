@@ -41,6 +41,7 @@ const newPalate = {
 }
 */
 module.exports.transcribeTextFunction = async (palate, userId) => {
+   console.log('running transcriber logic')
    const { id, title, text } = palate
    const firestoreCollectionName = "palates"
    const googleTextToSpeechClient = new TextToSpeechLongAudioSynthesizeClient()

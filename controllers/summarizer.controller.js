@@ -122,7 +122,6 @@ module.exports.summarizeContentEndpoint = async (req, res) => {
       const gptMessageArr = generateGptMessages(articleArray);
       const messages = [
          { role: 'system', content: systemContext },
-         // { role: 'user', content: "Here's the text!"},
          ...gptMessageArr
       ]
       const gptResponse = await openai.chat.completions.create({
@@ -142,7 +141,7 @@ module.exports.summarizeContentEndpoint = async (req, res) => {
          temperature: 0.2 // lower makes output more focused and deterministic. higher makes output more random/creative
       })
       const palateDescription = gptResponseNum2.choices[0].message.content;
-      
+      // TODO - check to see if any of these are null, if so provide an empty string
       const newPalate = {
          // user: '',
          author: '',
