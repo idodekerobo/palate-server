@@ -41,7 +41,8 @@ const newPalate = {
 }
 */
 module.exports.transcribeTextFunction = async (palate, userId) => {
-   console.log('running transcriber logic')
+   // console.log('running transcriber logic')
+   logger.info(`running transcriber logic`)
    const { id, title, text } = palate
    const firestoreCollectionName = "palates"
    const googleTextToSpeechClient = new TextToSpeechLongAudioSynthesizeClient()
@@ -77,8 +78,9 @@ module.exports.transcribeTextFunction = async (palate, userId) => {
       return response
 
    } catch (e) {
-      console.log(`error transcribing text`)
-      console.log(e);
+      // console.log(`error transcribing text`)
+      // console.log(e);
+      logger.error(`error transcribing text`, { error: e })
       return `failed to transcribe text: ${e}`
    }
 
