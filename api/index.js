@@ -41,23 +41,17 @@ router.get('/get-voices', transcriberCtrl.getVoices)
 // TODO: edit this function to also take into account user id so palates are specific to user
 router.post('/createPalate', async (req, res) => {
    logger.info("running logic on create palate endpoint")
-   // console.log("running logic on create palate endpoint")
 
    // parse article
    const articleArr = await parserCtrl.parseAndSaveArticleFunction(req.body.urls)
    // console.log('article array returned from parse and save article', articleArr)
-   logger.info("article array returned from parse and save article", { articleArr })
    
    // summarize
    const palate = await summarizerCtrl.summarizeContentFunction(articleArr)
    // console.log('palate returned from summarizer', palate)
-   logger.info("palate returned from summarizer", { palate })
 
    // transcribe
    const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate, req.body.userId)
-   // console.log('transcriber response', transcriberResponse)
-   logger.info("transcriber response", { transcriberResponse })
-   
    res.status(200).send("palate successfully created")
 })
 
