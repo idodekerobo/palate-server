@@ -26,6 +26,27 @@ module.exports.getVoices = async (req, res) => {
       res.status(400).send(e);
    }
 }
+const checkIfFileExistsInGoogleCloudStorage = async (bucket, fileName) => {
+   const storageBucket = utils.gCloudStorage.bucket(bucket)
+   const fileRef = storageBucket.file(fileName)
+   const exists = await fileRef.exists()
+   return exists[0]
+}
+module.exports.testDuplicateInCloudStorage = async (req, res) => {
+   console.log('hitting test dupe endpoint')
+   const bucketPath = "gs://palate-d1218.appspot.com/"
+   const fileName = req.body.fileName
+   try {
+      const response = await checkIfFileExistsInGoogleCloudStorage(bucketPath, fileName)
+      
+      console.log(response);
+      res.status(200).send(response);
+   } catch (e) {
+      console.log(e);
+      res.status(400).send(e);
+   }
+}
+
 
 /*
 const newPalate = {

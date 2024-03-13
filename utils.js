@@ -44,6 +44,7 @@ const firestoreDb = getFirestore();
 //      : {};
 //  };
 //  const gCloudStorage = new Storage(getGCPCredentials());
+const gCloudStorage = new Storage()
 
 // Firestore Functions
 const addDataToFirestore = async (data, collection) => {
@@ -112,7 +113,7 @@ const addPalateToFirestoreUser = async (userId, newPalateIdArr) => {
 }
 
 exports.firestoreDb = firestoreDb
-// exports.gCloudStorage = gCloudStorage
+exports.gCloudStorage = gCloudStorage
 exports.addDataToFirestore = addDataToFirestore
 exports.getFirestoreDocument = getFirestoreDocument
 exports.updateFirestoreDocument = updateFirestoreDocument

@@ -10,7 +10,7 @@ const summarizerCtrl = require('../controllers/summarizer.controller');
 const transcriberCtrl = require('../controllers/transcriber.controller');
 
 // PARSE ARTICLE ROUTES
-router.post('/postArticleData', parserCtrl.scrapeWithReadability)
+router.post('/scrape-article', parserCtrl.scrapeWithReadability)
 router.post('/parse-article', parserCtrl.parseAndSaveArticleEndpoint)
 
 // SUMMARIZER ROUTES
@@ -37,6 +37,7 @@ router.get('/palate/:palateId', async (req, res) => {
    }
 })
 router.get('/get-voices', transcriberCtrl.getVoices)
+router.post('/testDuplicateInCloudStorage', transcriberCtrl.testDuplicateInCloudStorage)
 
 // TODO: edit this function to also take into account user id so palates are specific to user
 router.post('/createPalate', async (req, res) => {
