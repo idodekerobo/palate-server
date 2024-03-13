@@ -62,7 +62,7 @@ module.exports.parseAndSaveArticleFunction = async (urls) => {
          const article = reader.parse();
          const articleData = {
             url: currentUrl,
-            previewImage: (previewImage) ? previewImage.content : "",
+            previewImage: (previewImage) ? previewImage.content : "", // check if preview image is null, if not, return previewImage.content
             ...article
          }
          const newArticleId = await utils.addDataToFirestore(articleData, "articles")
@@ -70,7 +70,7 @@ module.exports.parseAndSaveArticleFunction = async (urls) => {
          arrArticleContent.push({
             id: newArticleId,
             title: article.title,
-            previewImage: (previewImage) ? previewImage.content : "",
+            previewImage: (previewImage) ? previewImage.content : "", // check if preview image is null, if not, return previewImage.content
             siteName: article.siteName || "",
             textContent: article.textContent,
             originalArticleUrl: currentUrl
