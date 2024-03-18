@@ -52,7 +52,8 @@ router.post('/createPalate', async (req, res) => {
    // console.log('palate returned from summarizer', palate)
 
    // transcribe
-   const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate, req.body.userId)
+   // const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate, req.body.userId)
+   const transcriberResponse = await transcriberCtrl.transcribeTextWithOpenAi(palate, req.body.userId);
    res.status(200).send("palate successfully created")
 })
 
