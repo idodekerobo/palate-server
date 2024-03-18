@@ -5,7 +5,7 @@ const logger = require('heroku-logger')
 // const textToSpeech = require("@google-cloud/text-to-speech");
 // long form audio
 const { TextToSpeechLongAudioSynthesizeClient } = require('@google-cloud/text-to-speech').v1;
-
+const OpenAI = require('openai');
 const utils = require('../utils')
 
 // TRANSCRIBER CONTROLLER
@@ -108,6 +108,53 @@ module.exports.transcribeTextFunction = async (palate, userId) => {
 
 }
 
+module.exports.transcribeTextWithOpenAi = async (palate, userId) => {
+   const { id, title, text } = palate
+   const firestoreCollectionName = "palates"
+   const bucketName = "gs://palate-d1218.appspot.com/"
+   const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_SECRET_KEY
+   })
+   
+   // gsUtil URI file path: gs://<bucket_name>/<file_path_inside_bucket>
+   const gsUtilUriPath = `${bucketName}${title}.mp3`
+
+   if (!openai.apiKey) {
+      console.log('open ai api key not configured correctly')
+      logger.error('error! open ai api key not configured correctly.', { code: 500 })
+      res.status(500).json({
+         error: {
+            message: 'Open AI api key is not configured.'
+         }
+      });
+      return;
+   }
+   try {
+      const mp3 = await openai.audio.speech.create({
+         model: "tts-1",
+         voice: "alloy",
+         input: text,
+      });
+      const fileBuffer = Buffer.from(await mp3.arrayBuffer());
+      // await fs.promises.writeFile(gsUtilUriPath, fileBuffer);
+
+      const storage = utils.gCloudStorage
+      await storage.bucket(bucketName).file(`${title}.mp3`).save(fileBuffer);
+      // console.log(`${title} with contents ${fileBuffer} uploaded to ${bucketName}.`);
+
+      const palateFirestoreDocRef = utils.firestoreDb.collection(firestoreCollectionName).doc(id);
+      await palateFirestoreDocRef.update({ audioUrl: gsUtilUriPath })
+      await utils.addPalateToFirestoreUser(userId, [id])
+      
+      console.log(`completed transcription of long form audio using open ai`)
+      logger.info(`completed transcription of long form audio using open ai`)
+   } catch (e) {
+      console.log(`error transcribing text`)
+      console.log(e);
+      logger.error(`error transcribing text`, { error: e })
+      return `failed to transcribe text: ${e}`
+   }
+}
 module.exports.transcribeTextEndpoint = async (req, res) => {
    // TODO - pass in the palate id that has the text you want to fetch
    // const palateId = "IIrXS5h0dsftfEsOvAYX"

@@ -22,7 +22,7 @@
     "google-auth-library": "^9.6.3",
     "heroku-logger": "^0.3.3",
     "jsdom": "^22.1.0",
-    "openai": "^4.2.0"
+    "openai": "^4.29.1"
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
