@@ -81,7 +81,9 @@ module.exports.transcribeTextFunction = async (palate, userId) => {
          voice: {
             languageCode: 'en-US',
             // https://cloud.google.com/text-to-speech/docs/voices
-            name: 'en-US-Neural2-D',
+            // name: 'en-US-Neural2-D', // old voice
+            // name: 'en-US-Casual-K', // option 1
+            name: 'en-US-Studio-Q', // option 2
             // ssmlGender: 'NEUTRAL',
          }, 
          parent: `projects/928931080353/locations/us`,
