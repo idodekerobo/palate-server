@@ -17,7 +17,7 @@ router.post('/parse-article', parserCtrl.parseAndSaveArticleEndpoint)
 router.post('/summarize-content', summarizerCtrl.summarizeContentEndpoint);
 
 // TRANSCRIBER ROUTES
-router.post('/transcribe-text', transcriberCtrl.transcribeTextEndpoint);
+router.post('/transcribe-text', transcriberCtrl.transcribeTextWithOpenAiEndpoint);
 
 const apiUrl = process.env.API_URL
 
@@ -36,10 +36,9 @@ router.get('/palate/:palateId', async (req, res) => {
       res.status(400).send(e)
    }
 })
-router.get('/get-voices', transcriberCtrl.getVoices)
 router.post('/testDuplicateInCloudStorage', transcriberCtrl.testDuplicateInCloudStorage)
 
-// TODO: edit this function to also take into account user id so palates are specific to user
+// CREATE PALATE ENDPOINT
 router.post('/createPalate', async (req, res) => {
    logger.info("running logic on create palate endpoint")
 
@@ -52,7 +51,7 @@ router.post('/createPalate', async (req, res) => {
    // console.log('palate returned from summarizer', palate)
 
    // transcribe
-   // const transcriberResponse = await transcriberCtrl.transcribeTextFunction(palate, req.body.userId)
+   // const transcriberResponse = await transcriberCtrl.transcribeTextWithGoogleCloud(palate, req.body.userId)
    const transcriberResponse = await transcriberCtrl.transcribeTextWithOpenAi(palate, req.body.userId);
    res.status(200).send("palate successfully created")
 })

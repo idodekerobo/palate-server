@@ -75,6 +75,7 @@ module.exports.summarizeContentFunction = async (articleArray) => {
       messages.push({
          role: 'user', content: 'Now give me a short, ten word description of the text you just generated.'
       })
+      // TODO - double check the tokens being sent on this compleetion to see if i may need to reinitialize the API to make sure i'm not wasting tokens
       const gptResponseNum2 = await openai.chat.completions.create({
          model: OPEN_AI_GPT_MODEL,
          messages: messages,
@@ -175,5 +176,82 @@ module.exports.summarizeContentEndpoint = async (req, res) => {
             }
          });
       }
+   }
+}
+
+// TESTING FUNCTIONS AND ENDPOINTS
+/*
+HTTP BODY
+   {
+      originalArticleUrl: `articleUrl.com`
+      articleTitle: `Title of the Article I'm Giving Engine`
+      systemContext: `You are a content engine, named Palate. I'm going to give you some text and I want you to give me a breakdown of the text, in single person narrative format as if you were recording a podcast explaining the text. The output should be around 4500 words long describing, in depth, the takeaways, key points, and interesting parts of the text. Start off by saying, "This podcast is brought to you by Palate".`,
+      messageObjectArray: [
+         {
+            role: `user`,
+            content: `The text is titled: ${contentObj.title}. Here is the content: ${contentObj.textContent}`,
+         },
+      ]
+   }
+*/
+module.exports.testSummarizer = async (req, res) => {
+   const systemContext = req.body.systemContext
+   const messageObjectArray = req.body.messageObjectArray
+
+   const messagesForGptCompletion = [
+      { role: 'system', content: systemContext },
+      ...messageObjectArray
+   ]
+   if (!openai.apiKey) {
+      console.log('open ai api key not configured correctly')
+      logger.error('error! open ai api key not configured correctly.', { code: 500 })
+      res.status(500).json({
+         error: {
+            message: 'Open AI api key is not configured.'
+         }
+      });
+      return;
+   }
+   try {
+      const gptResponse = await openai.chat.completions.create({
+         model: OPEN_AI_GPT_MODEL,
+         messages: messagesForGptCompletion,
+         temperature: 0.2 // lower makes output more focused and deterministic. higher makes output more random/creative
+      })
+      const summarizedText = gptResponse.choices[0].message.content;
+      
+      messages.push(gptResponse.choices[0].message)
+      messages.push({
+         role: 'user', content: 'Now give me a short, ten word description of the text you just generated.'
+      })
+      const gptResponseNum2 = await openai.chat.completions.create({
+         model: OPEN_AI_GPT_MODEL,
+         messages: messages,
+         temperature: 0.2 // lower makes output more focused and deterministic. higher makes output more random/creative
+      })
+      const palateDescription = gptResponseNum2.choices[0].message.content;
+      const newPalate = {
+         gptMessages: messageObjectArray,
+         description: palateDescription,
+         text: summarizedText,
+         // previewImage: articleArray[0].previewImage || "", // check if preview image is null/undefined, if not, return empty string
+         // siteName: articleArray[0].siteName || "", // check if preview image is null/undefined, if not, return empty string
+         title: req.body.articleTitle,
+         originalArticleUrl: req.body.originalArticleUrl
+      }
+      const newPalateDbId = await utils.addDataToFirestore(newPalate, 'test_summarizer_results');
+      
+      const palateDbObject = {
+         ...newPalate,
+         id: newPalateDbId
+      }
+      res.status(200).send(palateDbObject)
+
+   } catch (e) {
+      console.log('error summarizing content')
+      console.log(e)
+      logger.error(`error! summarizing content`, { error: e })
+      res.status(400).send(e)
+      // return e
    }
 }

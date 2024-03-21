@@ -9,23 +9,6 @@ const OpenAI = require('openai');
 const utils = require('../utils')
 
 // TRANSCRIBER CONTROLLER
-
-module.exports.getVoices = async (req, res) => {
-   const languageCode = 'en';
-   const textToSpeech = require("@google-cloud/text-to-speech");
-   const googleTextToSpeechClient = new textToSpeech.TextToSpeechClient();
-   try {
-      const [result] = await googleTextToSpeechClient.listVoices({ languageCode })
-      // let voiceArr = [ ];
-      // getVoices.forEach(voice => {
-      //    voiceArr.push(voice.name);
-      // })
-      res.send(result);
-   } catch (e) {
-      console.log(e);
-      res.status(400).send(e);
-   }
-}
 const checkIfFileExistsInGoogleCloudStorage = async (bucket, fileName) => {
    const storageBucket = utils.gCloudStorage.bucket(bucket)
    const fileRef = storageBucket.file(fileName)
@@ -46,8 +29,20 @@ module.exports.testDuplicateInCloudStorage = async (req, res) => {
       res.status(400).send(e);
    }
 }
+const splitTextForCharacterLimit = (text) => {
+   const characterLimitForOpenAIModel = 4096
+   const buffer = 50
+   const cutPoint = characterLimitForOpenAIModel - buffer;
 
+   const textArr = []
+   const numAudios = Math.ceil(text.length / cutPoint)
 
+   for (let i=0; i < numAudios; i++) {
+      let str = text.slice( i*cutPoint, cutPoint*(i+1) );
+      textArr.push(str);
+   }
+   return textArr;
+}
 /*
 const newPalate = {
    id: String,
@@ -61,7 +56,7 @@ const newPalate = {
    originalArticleUrl: String
 }
 */
-module.exports.transcribeTextFunction = async (palate, userId) => {
+const transcribeTextWithGoogleCloud = async (palate, userId) => {
    const { id, title, text } = palate
    const firestoreCollectionName = "palates"
    const googleTextToSpeechClient = new TextToSpeechLongAudioSynthesizeClient()
@@ -108,10 +103,11 @@ module.exports.transcribeTextFunction = async (palate, userId) => {
 
 }
 
-module.exports.transcribeTextWithOpenAi = async (palate, userId) => {
+const transcribeTextWithOpenAi = async (palate, userId) => {
    const { id, title, text } = palate
    const firestoreCollectionName = "palates"
    const bucketName = "gs://palate-d1218.appspot.com/"
+   const storage = utils.gCloudStorage
    const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_SECRET_KEY
    })
@@ -130,17 +126,36 @@ module.exports.transcribeTextWithOpenAi = async (palate, userId) => {
       return;
    }
    try {
-      const mp3 = await openai.audio.speech.create({
-         model: "tts-1",
-         voice: "alloy",
-         input: text,
-      });
-      const fileBuffer = Buffer.from(await mp3.arrayBuffer());
-      // await fs.promises.writeFile(gsUtilUriPath, fileBuffer);
-
-      const storage = utils.gCloudStorage
-      await storage.bucket(bucketName).file(`${title}.mp3`).save(fileBuffer);
-      // console.log(`${title} with contents ${fileBuffer} uploaded to ${bucketName}.`);
+      const splitText = splitTextForCharacterLimit(text)
+      if (splitText.length > 1) {
+         let audioArr = [];
+         for (let i=0; i < splitText.length; i++) {
+            let mp3 = await openai.audio.speech.create({
+               model: "tts-1",
+               voice: "alloy",
+               input: splitText[i],
+            });
+            audioArr.push(mp3);
+         }
+         
+         let bufferArrList = [];
+         for (let i=0; i < audioArr.length; i++) {
+            let buf = Buffer.from(await audioArr[i].arrayBuffer());
+            bufferArrList.push(buf);
+         }
+         
+         const consolidatedBuffer = Buffer.concat(bufferArrList)
+         await storage.bucket(bucketName).file(`${title}.mp3`).save(consolidatedBuffer);
+      } else {
+         const mp3 = await openai.audio.speech.create({
+            model: "tts-1",
+            voice: "alloy",
+            // input: text,
+            input: splitText[0],
+         });
+         const fileBuffer = Buffer.from(await mp3.arrayBuffer());
+         await storage.bucket(bucketName).file(`${title}.mp3`).save(fileBuffer);
+      }
 
       const palateFirestoreDocRef = utils.firestoreDb.collection(firestoreCollectionName).doc(id);
       await palateFirestoreDocRef.update({ audioUrl: gsUtilUriPath })
@@ -155,60 +170,36 @@ module.exports.transcribeTextWithOpenAi = async (palate, userId) => {
       return `failed to transcribe text: ${e}`
    }
 }
-module.exports.transcribeTextEndpoint = async (req, res) => {
-   // TODO - pass in the palate id that has the text you want to fetch
-   // const palateId = "IIrXS5h0dsftfEsOvAYX"
-   const palateId = req.body.palateId;
-   const palateTitle = req.body.palateTitle
-   
-   // TODO - pass in the collections that you want to fetch
-   const firestoreCollectionName = "palates"
 
-   // longer audio
-   const googleTextToSpeechClient = new TextToSpeechLongAudioSynthesizeClient()
-   const bucketName = "gs://palate-d1218.appspot.com/"
-    
-   const fileName = palateTitle
-   
-   const palateData = await utils.getFirestoreDocument(palateId, firestoreCollectionName)
-   const textToTranscribe = palateData.text;
-
-   // gsUtil URI file path: gs://<bucket_name>/<file_path_inside_bucket>
-   console.log('bucket name: ', bucketName)
-   console.log('file name: ', fileName)
-   const gsUtilUriPath = `${bucketName}${fileName}.wav`
-
+module.exports.transcribeTextWithOpenAiEndpoint = async (req, res) => {
+   const palate = req.body.palate
+   const userId = req.body.userId
    try {
-      const request = {
-         input: { 
-            text: textToTranscribe
-         },
-         // long audio
-         audioConfig: {
-            audioEncoding: `LINEAR16`
-         },
-         voice: {
-            languageCode: 'en-US',
-            // https://cloud.google.com/text-to-speech/docs/voices
-            name: 'en-US-Neural2-D',
-         }, 
-         // parent: "palate-d1218",
-         parent: `projects/928931080353/locations/us`,
-         outputGcsUri: gsUtilUriPath
-      };
-
-      // create long audio from text
-      const response = await googleTextToSpeechClient.synthesizeLongAudio(request); // this automatically saves it to cloud bucket
-
-      const palateFirestoreDocRef = utils.firestoreDb.collection(firestoreCollectionName).doc(palateId);
-      await palateFirestoreDocRef.update({ audioUrl: gsUtilUriPath })
-      console.log('completed transcription of long form audio')
-
+      // await transcribeTextWithOpenAi(palate, userId)
+      await transcribeTextWithOpenAi(palate, userId)
       res.status(200).send({
-         response: response
+         response: "successful"
+      })
+   } catch (e) {
+      console.log(e);
+      res.status(400).send({
+         response: e
+      });
+   }
+}
+module.exports.transcribeTextWithGoogleCloudEndpoint = async (req, res) => {
+   const palate = req.body.palate
+   const userId = req.body.userId
+   try {
+      await transcribeTextWithGoogleCloud(palate, userId)
+      res.status(200).send({
+         response: 'success'
       });
    } catch (e) {
       console.log(e);
       res.status(400).send(e);
    }
 }
+
+module.exports.transcribeTextWithOpenAi = transcribeTextWithOpenAi
+module.exports.transcribeTextWithGoogleCloud = transcribeTextWithGoogleCloud
