@@ -43,17 +43,21 @@ const generateGptMessages = (contentArr) => {
    })
    return messageArr; 
 }
-
-module.exports.summarizeContentFunction = async (articleArray) => {
+// TODO - find out whether sneding the entire message array when getting the description costs more money or more latency
+module.exports.summarizeContentFunction = async (req, res, articleArray) => {
    const numWordsForThirtyMinPodcast = [3000, 4500];
    const systemContext = `You are a content engine, named Palate. I'm going to give you some text and I want you to give me a breakdown of the text, in single person narrative format as if you were recording a podcast explaining the text. The output should be around ${numWordsForThirtyMinPodcast[1]} words long describing, in depth, the takeaways, key points, and interesting parts of the text. Start off by saying, "This podcast is brought to you by Palate".`;
    
    if (!openai.apiKey) {
-      console.log('open ai api key not configured correctly')
-      logger.error('error! open ai api key not configured correctly.', { code: 500 })
+      logger.error(`Issue with the Open AI API key - ${e.name}: ${e.message}`)
+      logger.error(e.stack)
       res.status(500).json({
+         response: `There was an issue summarizing the text.`,
          error: {
-            message: 'Open AI api key is not configured.'
+            name: e.name,
+            message: e.message,
+            cause: e.cause,
+            stack: e.stack
          }
       });
       return;
@@ -101,10 +105,17 @@ module.exports.summarizeContentFunction = async (articleArray) => {
       return palateDbObject
 
    } catch (e) {
-      console.log('error summarizing content')
-      console.log(e)
-      logger.error(`error! summarizing content`, { error: e })
-      return e
+      logger.error(`failed to summarize content - ${e.name}: ${e.message}`)
+      logger.error(e.stack)
+      res.status(503).json({
+         response: `Error occured while summarizing content.`,
+         error: {
+            message: e.message,
+            name: e.name,
+            cause: e.cause,
+            stack: e.stack
+         }
+      });
    }
 }
 
@@ -219,16 +230,18 @@ module.exports.testSummarizer = async (req, res) => {
          temperature: 0.2 // lower makes output more focused and deterministic. higher makes output more random/creative
       })
       const summarizedText = gptResponse.choices[0].message.content;
-      
-      messages.push(gptResponse.choices[0].message)
-      messages.push({
+      console.log(gptResponse.usage)
+
+      messagesForGptCompletion.push(gptResponse.choices[0].message)
+      messagesForGptCompletion.push({
          role: 'user', content: 'Now give me a short, ten word description of the text you just generated.'
       })
       const gptResponseNum2 = await openai.chat.completions.create({
          model: OPEN_AI_GPT_MODEL,
-         messages: messages,
+         messages: messagesForGptCompletion,
          temperature: 0.2 // lower makes output more focused and deterministic. higher makes output more random/creative
       })
+      console.log(gptResponseNum2.usage)
       const palateDescription = gptResponseNum2.choices[0].message.content;
       const newPalate = {
          gptMessages: messageObjectArray,
@@ -240,7 +253,6 @@ module.exports.testSummarizer = async (req, res) => {
          originalArticleUrl: req.body.originalArticleUrl
       }
       const newPalateDbId = await utils.addDataToFirestore(newPalate, 'test_summarizer_results');
-      
       const palateDbObject = {
          ...newPalate,
          id: newPalateDbId
@@ -248,10 +260,16 @@ module.exports.testSummarizer = async (req, res) => {
       res.status(200).send(palateDbObject)
 
    } catch (e) {
-      console.log('error summarizing content')
-      console.log(e)
-      logger.error(`error! summarizing content`, { error: e })
-      res.status(400).send(e)
-      // return e
+      logger.error(`failed to summarize content - ${e.name}: ${e.message}`)
+      logger.error(e.stack)
+      res.status(500).json({
+         response: `Error occured while summarizing content.`,
+         error: {
+            name: e.name,
+            message: e.message,
+            cause: e.cause,
+            stack: e.stack
+         }
+      });
    }
 }
