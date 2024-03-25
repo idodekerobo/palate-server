@@ -45,7 +45,8 @@ module.exports.scrapeWithReadability = async (req, res) => {
 
 // PARSE ARTICLE CONTROLLER
 // TODO: pass in user parameter along with palate url
-module.exports.parseAndSaveArticleFunction = async (urls) => {
+module.exports.parseAndSaveArticleFunction = async (req, res) => {
+   const urls = req.body.urls
    const Readability = readability.Readability;
    
    let arrArticleContent = []
@@ -78,11 +79,18 @@ module.exports.parseAndSaveArticleFunction = async (urls) => {
       }
       return arrArticleContent
    } catch (e) {
-      logger.error(`error parsing text`, { error: e })
-      console.log(`error parsing articles ${e}`)
-      return []
+      logger.error(`There was an issue parsing the text at the URL - ${e.name}: ${e.message}`)
+      logger.error(e.stack)
+      res.status(501).json({
+         response: `There was an issue parsing the text at the URL.`,
+         error: {
+            name: e.name,
+            message: e.message,
+            cause: e.cause,
+            stack: e.stack
+         }
+      });
    }
-      
 }
 
 module.exports.parseAndSaveArticleEndpoint = async (req, res) => {

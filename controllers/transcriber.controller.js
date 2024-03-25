@@ -103,7 +103,8 @@ const transcribeTextWithGoogleCloud = async (palate, userId) => {
 
 }
 
-const transcribeTextWithOpenAi = async (palate, userId) => {
+const transcribeTextWithOpenAi = async (req, res, palate) => {
+   const userId = req.body.userId
    const { id, title, text } = palate
    const firestoreCollectionName = "palates"
    const bucketName = "gs://palate-d1218.appspot.com/"
@@ -116,11 +117,15 @@ const transcribeTextWithOpenAi = async (palate, userId) => {
    const gsUtilUriPath = `${bucketName}${title}.mp3`
 
    if (!openai.apiKey) {
-      console.log('open ai api key not configured correctly')
-      logger.error('error! open ai api key not configured correctly.', { code: 500 })
+      logger.error(`Issue with the Open AI API key - ${e.name}: ${e.message}`)
+      logger.error(e.stack)
       res.status(500).json({
+         response: `There was an issue transcribing the text into audio.`,
          error: {
-            message: 'Open AI api key is not configured.'
+            name: e.name,
+            message: e.message,
+            cause: e.cause,
+            stack: e.stack
          }
       });
       return;
@@ -164,10 +169,17 @@ const transcribeTextWithOpenAi = async (palate, userId) => {
       console.log(`completed transcription of long form audio using open ai`)
       logger.info(`completed transcription of long form audio using open ai`)
    } catch (e) {
-      console.log(`error transcribing text`)
-      console.log(e);
-      logger.error(`error transcribing text`, { error: e })
-      return `failed to transcribe text: ${e}`
+      logger.error(`There was an issue transcribing the text into audio - ${e.name}: ${e.message}`)
+      logger.error(e.stack)
+      res.status(503).json({
+         response: `There was an issue transcribing the text into audio.`,
+         error: {
+            name: e.name,
+            message: e.message,
+            cause: e.cause,
+            stack: e.stack
+         }
+      });
    }
 }
 
